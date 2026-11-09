@@ -1,9 +1,28 @@
 import { hashPassword, transaction } from './db.js';
 import { campusDate, dayMs, hoursFor, iso, slotMs } from './schedule.js';
 
+function addDemoPhotos(db) {
+  const photos = [
+    ['Б-204', 'dialog', 'Группа за обсуждением проекта в переговорной'],
+    ['А-312', 'seminar', 'Учебная аудитория с партами'],
+    ['Б-108', 'orbit', 'Рабочие столы в открытом пространстве'],
+    ['И-406', 'lab', 'Ряды компьютеров в учебном классе'],
+    ['А-216', 'lecture', 'Ступенчатые ряды мест в лекционной аудитории'],
+    ['И-202', 'vector', 'Переговорная с длинным столом и стульями']
+  ];
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO room_photos (room_id, url, alt)
+    SELECT id, ?, ? FROM rooms WHERE number = ?
+  `);
+  for (const [number, file, alt] of photos) insert.run('/photos/' + file + '.jpg', alt, number);
+}
+
 export function seed(db) {
   transaction(db, () => {
-    if (db.prepare('SELECT 1 FROM roles LIMIT 1').get()) return;
+    if (db.prepare('SELECT 1 FROM roles LIMIT 1').get()) {
+      addDemoPhotos(db);
+      return;
+    }
     db.exec(`
       INSERT INTO roles VALUES ('student', 'Студент'), ('teacher', 'Преподаватель'), ('admin', 'Администратор');
       INSERT INTO buildings VALUES
@@ -63,6 +82,8 @@ export function seed(db) {
       'Разбор презентации по курсовому проекту', iso(now - 3 * dayMs));
     const second = insertBooking.run(2, 2, iso(yesterday + 4 * slotMs), iso(yesterday + 6 * slotMs),
       'Семинар по архитектуре информационных систем', iso(now - 4 * dayMs));
+    insertBooking.run(1, 3, iso(yesterday + 12 * slotMs), iso(yesterday + 15 * slotMs),
+      'Подготовка к зачёту по базам данных', iso(now - 2 * dayMs));
     insertBooking.run(4, 1, iso(tomorrow + 6 * slotMs), iso(tomorrow + 8 * slotMs),
       'Встреча команды перед защитой', iso(now - dayMs));
     insertBooking.run(2, 2, iso(tomorrow + 10 * slotMs), iso(tomorrow + 13 * slotMs),
@@ -73,5 +94,6 @@ export function seed(db) {
     `);
     review.run(first.lastInsertRowid, 5, 4, 5, 'Тихо даже в обед, экран подключился с первого раза.', iso(now - dayMs / 3));
     review.run(second.lastInsertRowid, 5, 5, 4, 'Проектор яркий, за последними столами хорошо видно.', iso(now - dayMs / 4));
+    addDemoPhotos(db);
   });
 }

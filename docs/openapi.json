@@ -1,0 +1,1743 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CampusSpace API",
+    "version": "0.1.0",
+    "description": "HTTP API каталога, календаря занятости и согласования бронирований. Время хранится в UTC и показывается по Екатеринбургу."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "campusSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "campus_session"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "student",
+              "teacher",
+              "admin"
+            ]
+          },
+          "reminders": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "reminders"
+        ]
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "floor": {
+            "type": "integer"
+          },
+          "capacity": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "accessNotes": {
+            "type": "string"
+          },
+          "accessLevel": {
+            "type": "string",
+            "enum": [
+              "all",
+              "staff"
+            ]
+          },
+          "approvalRequired": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "building": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "photoAlt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "number",
+          "floor",
+          "capacity",
+          "description",
+          "accessNotes",
+          "accessLevel",
+          "approvalRequired",
+          "building",
+          "address",
+          "type",
+          "photo",
+          "photoAlt",
+          "rating",
+          "equipment"
+        ]
+      },
+      "Slot": {
+        "type": "object",
+        "properties": {
+          "startAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Метка UTC из календаря, заканчивается на Z."
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Метка UTC из календаря, заканчивается на Z."
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "free",
+              "busy",
+              "past"
+            ]
+          }
+        },
+        "required": [
+          "startAt",
+          "endAt",
+          "label",
+          "status"
+        ]
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "seriesId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roomId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Метка UTC из календаря, заканчивается на Z."
+          },
+          "endAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Метка UTC из календаря, заканчивается на Z."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "rejected",
+              "cancelled"
+            ]
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "decisionNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "room": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "building": {
+            "type": "string"
+          },
+          "requester": {
+            "type": "string"
+          },
+          "reviewed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "seriesId",
+          "roomId",
+          "startAt",
+          "endAt",
+          "status",
+          "purpose",
+          "decisionNote",
+          "room",
+          "number",
+          "building",
+          "requester",
+          "reviewed"
+        ]
+      },
+      "Review": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cleanliness": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "equipment": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comfort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cleanliness",
+          "equipment",
+          "comfort",
+          "comment",
+          "createdAt",
+          "name"
+        ]
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "bookingId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "message": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "bookingId",
+          "message",
+          "createdAt",
+          "readAt"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Проверить состояние сервиса",
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/filters": {
+      "get": {
+        "summary": "Получить значения фильтров",
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "buildings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "types": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "equipment": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "today": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  },
+                  "required": [
+                    "buildings",
+                    "types",
+                    "equipment",
+                    "timezone",
+                    "today"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "summary": "Найти помещения",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Поиск по названию, номеру, корпусу, типу и описанию.",
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "building",
+            "in": "query",
+            "required": false,
+            "description": "Идентификатор корпуса. 0 — все корпуса.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Идентификатор типа помещения. 0 — все типы.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "equipment",
+            "in": "query",
+            "required": false,
+            "description": "Идентификатор оборудования. 0 — любое.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "capacity",
+            "in": "query",
+            "required": false,
+            "description": "Минимальное количество мест.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rooms": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Room"
+                      }
+                    }
+                  },
+                  "required": [
+                    "rooms"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}": {
+      "get": {
+        "summary": "Получить карточку помещения",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Room"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/calendar": {
+      "get": {
+        "summary": "Получить слоты на день",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "Дата по Екатеринбургу.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "timezone": {
+                      "type": "string"
+                    },
+                    "slots": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Slot"
+                      }
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "timezone",
+                    "slots"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/reviews": {
+      "get": {
+        "summary": "Получить отзывы о помещении",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reviews": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Review"
+                      }
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "summary": "Проверить активную сессию",
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/User"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Обновить имя и настройки напоминаний",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "reminders": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "reminders"
+                ]
+              },
+              "example": {
+                "name": "Алина Смирнова",
+                "reminders": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Тело запроса превышает 16 КБ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Для тела запроса требуется application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session": {
+      "post": {
+        "summary": "Войти",
+        "description": "При успехе возвращает HttpOnly-cookie campus_session со сроком действия 24 часа.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              },
+              "example": {
+                "email": "student@campus.test",
+                "password": "campus-demo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Тело запроса превышает 16 КБ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Для тела запроса требуется application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Выйти",
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "summary": "Получить свои бронирования",
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bookings": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Booking"
+                      }
+                    }
+                  },
+                  "required": [
+                    "bookings"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать бронь или еженедельную серию",
+        "description": "Начало и конец берутся из календаря. Слот кратен 30 минутам. Весь день — 08:00–22:00 по Екатеринбургу. Для специализированного помещения создаётся заявка.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "roomId": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "startAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Метка UTC из календаря, заканчивается на Z."
+                  },
+                  "endAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Метка UTC из календаря, заканчивается на Z."
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 180
+                  },
+                  "weeks": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12,
+                    "default": 1
+                  }
+                },
+                "required": [
+                  "roomId",
+                  "startAt",
+                  "endAt",
+                  "purpose"
+                ]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Запись создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bookings": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Booking"
+                      }
+                    }
+                  },
+                  "required": [
+                    "bookings"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие недоступно для текущей роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт слота или операция недоступна при текущем статусе",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Тело запроса превышает 16 КБ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Для тела запроса требуется application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}/cancel": {
+      "post": {
+        "summary": "Отменить свою будущую бронь",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт слота или операция недоступна при текущем статусе",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/cancel": {
+      "post": {
+        "summary": "Отменить будущие бронирования серии",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cancelled": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "cancelled"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}/review": {
+      "post": {
+        "summary": "Оценить помещение после посещения",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cleanliness": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "equipment": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "comfort": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "comment": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "cleanliness",
+                  "equipment",
+                  "comfort",
+                  "comment"
+                ]
+              },
+              "example": {
+                "cleanliness": 5,
+                "equipment": 4,
+                "comfort": 5,
+                "comment": "Удобно для небольшой группы."
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Запись создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт слота или операция недоступна при текущем статусе",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Тело запроса превышает 16 КБ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Для тела запроса требуется application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/requests": {
+      "get": {
+        "summary": "Получить заявки на согласование",
+        "description": "Только для администратора.",
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Booking"
+                      }
+                    }
+                  },
+                  "required": [
+                    "requests"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие недоступно для текущей роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/requests/{id}/decision": {
+      "post": {
+        "summary": "Одобрить или отклонить заявку",
+        "description": "Только для администратора.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Идентификатор объекта.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "confirmed",
+                      "rejected"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 180
+                  }
+                },
+                "required": [
+                  "decision"
+                ]
+              },
+              "example": {
+                "decision": "confirmed",
+                "note": "Класс откроет дежурный."
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка в параметрах или теле запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Действие недоступно для текущей роли",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Объект не найден",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт слота или операция недоступна при текущем статусе",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Тело запроса превышает 16 КБ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Для тела запроса требуется application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "summary": "Получить последние уведомления",
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "notifications": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Notification"
+                      }
+                    }
+                  },
+                  "required": [
+                    "notifications"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Отметить уведомления прочитанными",
+        "security": [
+          {
+            "campusSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запрос выполнен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Требуется вход или данные входа неверны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

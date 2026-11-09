@@ -5,6 +5,7 @@ import { openDatabase } from '../src/db.js';
 import { createCampusServer } from '../src/server.js';
 import { campusDate, dayMs } from '../src/schedule.js';
 
+let db;
 let server;
 let base;
 let student;
@@ -43,7 +44,8 @@ async function interval(roomId, date = futureDate) {
 }
 
 before(async () => {
-  server = createCampusServer(openDatabase(':memory:')).listen(0, '127.0.0.1');
+  db = openDatabase(':memory:');
+  server = createCampusServer(db).listen(0, '127.0.0.1');
   await once(server, 'listening');
   base = 'http://127.0.0.1:' + server.address().port;
   [student, teacher, admin] = await Promise.all(['student', 'teacher', 'admin'].map(login));
@@ -108,4 +110,37 @@ test('конфликт во второй неделе откатывает вс�
   const [{ seriesId }] = created.data.bookings;
   assert.equal(created.data.bookings.length, 2);
   assert.equal((await api(`/series/${seriesId}/cancel`, { method: 'POST', cookie: student })).data.cancelled, 2);
+});
+
+test('рабочий день бронируется целиком, отзыв меняет рейтинг помещения', async () => {
+  const { data: calendar } = await api(`/rooms/6/calendar?date=${futureDate}`);
+  const data = { roomId: 6, startAt: calendar.slots[0].startAt, endAt: calendar.slots.at(-1).endAt,
+    purpose: 'Интенсив по учебному проекту' };
+  const created = await api('/bookings', { method: 'POST', cookie: student, data });
+  assert.equal(created.status, 201);
+  const [booking] = created.data.bookings;
+  const review = { cleanliness: 5, equipment: 4, comfort: 3, comment: 'Достаточно места для команды.' };
+  assert.equal((await api(`/bookings/${booking.id}/review`, { method: 'POST', cookie: student, data: review })).status, 409);
+
+  const { data: dashboard } = await api('/bookings', { cookie: student });
+  const completed = dashboard.bookings.find(row => row.roomId === 3 && Date.parse(row.endAt) < Date.now());
+  const path = `/bookings/${completed.id}/review`;
+  assert.equal((await api(path, { method: 'POST', cookie: student, data: review })).status, 201);
+  assert.equal((await api(path, { method: 'POST', cookie: student, data: review })).status, 409);
+  assert.equal((await api('/rooms/3')).data.rating, 4);
+});
+
+test('напоминание отправляется один раз и отмечается прочитанным', async () => {
+  const now = Date.now();
+  const iso = offset => new Date(now + offset).toISOString();
+  const { lastInsertRowid } = db.prepare(`
+    INSERT INTO bookings (user_id, room_id, start_at, end_at, purpose, status, created_at)
+    VALUES (1, 4, ?, ?, 'Подготовка к лабораторной', 'confirmed', ?)
+  `).run(iso(30 * 60_000), iso(90 * 60_000), iso(0));
+  const matching = async () => (await api('/notifications', { cookie: student })).data.notifications
+    .filter(item => item.bookingId === lastInsertRowid && item.message.includes('Скоро бронирование'));
+  assert.equal((await matching()).length, 1);
+  assert.equal((await matching()).length, 1);
+  assert.equal((await api('/notifications', { method: 'PATCH', cookie: student })).status, 200);
+  assert.ok((await matching())[0].readAt);
 });

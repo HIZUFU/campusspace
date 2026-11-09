@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Бронирование учебных пространств кампуса">
+  <meta name="theme-color" content="#163331">
+  <title>CampusSpace — пространства кампуса</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/vendor/bootstrap.css">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-container topbar">
+      <a class="brand" href="#catalog" aria-label="CampusSpace, каталог">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M17.5 14v7M14 17.5h7"/>
+          </svg>
+        </span>
+        <span>Campus<span class="brand-accent">Space</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Разделы">
+        <a class="site-nav-link" data-view="catalog" href="#catalog">Помещения</a>
+        <a class="site-nav-link" data-view="account" href="#account">Личный кабинет</a>
+        <a class="site-nav-link" data-view="admin" href="#admin" hidden>Заявки</a>
+      </nav>
+      <div id="identity" class="identity"></div>
+    </div>
+  </header>
+
+  <main class="site-container">
+    <section id="catalog" aria-labelledby="catalog-title">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="hero-label"><span></span> ПРОСТРАНСТВА КАМПУСА</p>
+          <h1 id="catalog-title">Найдите место<br>для вашей команды</h1>
+          <p class="hero-description">Аудитории, переговорные и коворкинги.<br class="d-none d-sm-inline"> Выберите пространство и забронируйте удобное время.</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 480 280" fill="none">
+            <path d="M30 50h420M30 95h420M30 140h420M30 185h420M30 230h420M60 5v270M120 5v270M180 5v270M240 5v270M300 5v270M360 5v270M420 5v270" stroke="#cee6ca" opacity=".12"/>
+            <path d="M160 48h221a18 18 0 0 1 18 18v146a18 18 0 0 1-18 18H160a18 18 0 0 1-18-18V66a18 18 0 0 1 18-18Z" fill="#25504a" stroke="#699d8b" stroke-width="1.5"/>
+            <path d="M142 92h257M195 38v25M348 38v25" stroke="#a5d0bd" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M171 121h28m21 0h28m21 0h28m21 0h28m-175 28h28m21 0h28m70 0h28m-175 28h28m21 0h28m21 0h28m21 0h28m-175 28h28m21 0h28m21 0h28m21 0h28" stroke="#739c91" stroke-width="2" stroke-linecap="round"/>
+            <rect x="261" y="135" width="46" height="28" rx="8" fill="#d2ec9f"/>
+            <path d="m276 149 5 5 10-11" stroke="#163331" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="110" cy="193" r="35" fill="#d2ec9f"/>
+            <path d="M110 178v15l11 7" stroke="#163331" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M419 111h20m-10-10v20M113 75h14m-7-7v14" stroke="#d2ec9f" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <form id="filters" class="filter-panel" aria-label="Поиск и фильтры">
+        <div class="filter-field filter-search">
+          <label for="q">Поиск</label>
+          <input id="q" name="q" class="form-control" type="search" placeholder="Название или номер" maxlength="120">
+        </div>
+        <div class="filter-field"><label for="building">Корпус</label>
+          <select class="form-select" id="building" name="building"><option value="">Все корпуса</option></select>
+        </div>
+        <div class="filter-field"><label for="type">Тип помещения</label>
+          <select class="form-select" id="type" name="type"><option value="">Все типы</option></select>
+        </div>
+        <div class="filter-field"><label for="equipment">Оснащение</label>
+          <select class="form-select" id="equipment" name="equipment"><option value="">Любое</option></select>
+        </div>
+        <div class="filter-field"><label for="capacity">Вместимость</label>
+          <select class="form-select" id="capacity" name="capacity">
+            <option value="">Любая</option><option value="8">От 8 мест</option><option value="12">От 12 мест</option>
+            <option value="20">От 20 мест</option><option value="30">От 30 мест</option>
+          </select>
+        </div>
+      </form>
+
+      <div class="section-heading catalog-heading">
+        <div><h2>Каталог помещений</h2><p id="room-count" aria-live="polite">Загружаем помещения…</p></div>
+        <button type="reset" form="filters" class="btn btn-outline-secondary btn-sm">Сбросить фильтры</button>
+      </div>
+      <div id="rooms" class="room-grid"></div>
+    </section>
+
+    <section id="account" aria-labelledby="account-title" hidden>
+      <div class="page-heading">
+        <p class="section-kicker">ПРОФИЛЬ</p>
+        <h1 id="account-title">Личный кабинет</h1>
+        <p>Бронирования, уведомления и настройки профиля.</p>
+      </div>
+      <div id="account-content"></div>
+    </section>
+
+    <section id="admin" aria-labelledby="admin-title" hidden>
+      <div class="page-heading">
+        <p class="section-kicker">АДМИНИСТРИРОВАНИЕ</p>
+        <h1 id="admin-title">Заявки на согласование</h1>
+        <p>Проверьте детали бронирования и примите решение.</p>
+      </div>
+      <div id="admin-content"></div>
+    </section>
+  </main>
+
+  <footer class="site-container site-footer">
+    <span>CampusSpace · Учебный кампус</span>
+    <a href="/api-docs.html">Документация API</a>
+  </footer>
+
+  <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+  <dialog id="room-dialog" class="app-dialog room-dialog" aria-labelledby="room-title"></dialog>
+  <dialog id="login-dialog" class="app-dialog" aria-labelledby="login-title"></dialog>
+  <dialog id="action-dialog" class="app-dialog" aria-labelledby="action-title"></dialog>
+</body>
+</html>
