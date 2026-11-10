@@ -76,7 +76,7 @@ function connectBookingActions(container, refresh) {
           approve ? 'Одобрить' : 'Отклонить', async values => {
             await api(`/admin/requests/${id}/decision`, 'POST', { decision, note: values.get('note') });
             announce(approve ? 'Заявка одобрена.' : 'Заявка отклонена.');
-            await refresh();
+            await refresh(id);
           });
       } else {
         const text = series ? 'Все будущие брони в серии будут отменены.' : 'Слот станет доступен другим пользователям.';
@@ -103,26 +103,63 @@ function renderBookings(target, rows) {
   </section>`;
 }
 
-function bookingFilters(rows) {
-  const rooms = new Map(rows.map(row => [row.roomId, row.room]));
-  return `<form id="booking-filters" class="panel">
-    <h2 class="mb-3">Фильтры бронирований</h2><div class="row g-2">
-      <label class="col-12"><span class="form-label">Поиск</span>
-        <input class="form-control" name="q" type="search" placeholder="Помещение или цель"></label>
-      <label class="col-sm-6"><span class="form-label">Помещение</span><select class="form-select" name="roomId">
-        <option value="">Все</option>${[...rooms].map(([id, name]) => `<option value="${id}">${e(name)}</option>`).join('')}
-      </select></label>
-      <label class="col-sm-6"><span class="form-label">Статус</span><select class="form-select" name="status">
+function bookingFilters(rows, admin = false) {
+  const id = admin ? 'admin-filters' : 'booking-filters';
+  const rooms = new Map(rows.map(row => [row.roomId, admin ? `${row.room} · ${row.number}` : row.room]));
+  const buildings = [...new Set(rows.map(row => row.building))].sort((a, b) => a.localeCompare(b, 'ru'));
+  const scope = admin
+    ? `<div class="col-sm-6"><label class="form-label" for="${id}-building">Корпус</label>
+      <select class="form-select" id="${id}-building" name="building">
+        <option value="">Все корпуса</option>${buildings.map(name => `<option value="${e(name)}">${e(name)}</option>`).join('')}
+      </select></div>`
+    : `<div class="col-sm-6"><label class="form-label" for="${id}-status">Статус</label>
+      <select class="form-select" id="${id}-status" name="status">
         <option value="">Все</option><option value="confirmed">Подтверждено</option><option value="pending">На согласовании</option>
         <option value="rejected">Отклонено</option><option value="cancelled">Отменено</option>
-      </select></label>
+      </select></div>`;
+  return `<form id="${id}" class="panel">
+    <h2 class="mb-3">${admin ? 'Фильтры заявок' : 'Фильтры бронирований'}</h2><div class="row g-2">
+      <label class="col-12"><span class="form-label">Поиск</span>
+        <input class="form-control" name="q" type="search" placeholder="${admin ? 'Заявитель, помещение или цель' : 'Помещение или цель'}"></label>
+      <div class="col-sm-6"><label class="form-label" for="${id}-room">Помещение</label>
+        <select class="form-select" id="${id}-room" name="roomId">
+          <option value="">Все</option>${[...rooms].map(([roomId, name]) => `<option value="${roomId}">${e(name)}</option>`).join('')}
+        </select>
+      </div>
+      ${scope}
       <label class="col-sm-6"><span class="form-label">Дата</span><input class="form-control" name="date" type="date"></label>
-      <label class="col-sm-6"><span class="form-label">Повторение</span><select class="form-select" name="recurrence">
-        <option value="">Любое</option><option value="series">Серия</option><option value="single">Разовое</option>
-      </select></label>
+      <div class="col-sm-6"><label class="form-label" for="${id}-recurrence">Повторение</label>
+        <select class="form-select" id="${id}-recurrence" name="recurrence">
+          <option value="">Любое</option><option value="series">Серия</option><option value="single">Разовое</option>
+        </select>
+      </div>
     </div>
     <button class="${secondary} btn-sm mt-3" type="reset">Сбросить фильтры</button>
   </form>`;
+}
+
+function matchingBookings(rows, filters, admin = false) {
+  const { q, roomId, building, status, date, recurrence } = Object.fromEntries(new FormData(filters));
+  const normalize = value => value.toLocaleLowerCase('ru').replaceAll('ё', 'е');
+  const query = normalize(q.trim());
+  const dayFormat = new Intl.DateTimeFormat('en-CA', { timeZone: state.timezone });
+  return rows.filter(row => {
+    const fields = [row.room, row.number, row.purpose];
+    if (admin) fields.push(row.requester, row.building);
+    return (!query || normalize(fields.join(' ')).includes(query))
+      && (!roomId || String(row.roomId) === roomId)
+      && (!building || row.building === building)
+      && (!status || row.status === status)
+      && (!date || dayFormat.format(new Date(row.startAt)) === date)
+      && (!recurrence || Boolean(row.seriesId) === (recurrence === 'series'));
+  });
+}
+
+function connectFilters(form, render) {
+  form.addEventListener('submit', event => event.preventDefault());
+  form.addEventListener('input', render);
+  form.addEventListener('reset', () => setTimeout(render));
+  render();
 }
 
 export async function loadAccount(showLogin, refreshIdentity) {
@@ -169,24 +206,11 @@ export async function loadAccount(showLogin, refreshIdentity) {
       </aside>
     </div>`;
     const filters = $('#booking-filters');
-    const updateBookings = () => {
-      const form = new FormData(filters);
-      const query = String(form.get('q')).trim().toLocaleLowerCase('ru');
-      const dayFormat = new Intl.DateTimeFormat('en-CA', { timeZone: state.timezone });
-      const rows = bookings.filter(row =>
-        (!query || `${row.room} ${row.number} ${row.purpose}`.toLocaleLowerCase('ru').includes(query))
-        && (!form.get('roomId') || String(row.roomId) === form.get('roomId'))
-        && (!form.get('status') || row.status === form.get('status'))
-        && (!form.get('date') || dayFormat.format(new Date(row.startAt)) === form.get('date'))
-        && (!form.get('recurrence') || Boolean(row.seriesId) === (form.get('recurrence') === 'series')));
-      const list = $('#bookings');
-      renderBookings(list, rows);
+    const list = $('#bookings');
+    connectFilters(filters, () => {
+      renderBookings(list, matchingBookings(bookings, filters));
       connectBookingActions(list, refresh);
-    };
-    filters.addEventListener('submit', event => event.preventDefault());
-    filters.addEventListener('input', updateBookings);
-    filters.addEventListener('reset', () => setTimeout(updateBookings));
-    updateBookings();
+    });
     $('#mark-read')?.addEventListener('click', async event => {
       event.target.disabled = true;
       try {
@@ -210,18 +234,40 @@ export async function loadAccount(showLogin, refreshIdentity) {
 
 export async function loadAdmin() {
   const target = $('#admin-content');
+  const userId = state.user?.id;
   if (state.user?.role !== 'admin') {
     target.innerHTML = empty('Раздел доступен администратору.');
     return;
   }
   target.innerHTML = empty('Загружаем заявки…');
   try {
-    const { requests } = await api('/admin/requests');
-    if (state.user?.role !== 'admin') return;
-    target.innerHTML = `<div class="stack">${requests.length ? requests.map(row => bookingCard(row, true)).join('')
-      : empty('Нет заявок, ожидающих решения.')}</div>`;
-    connectBookingActions(target, loadAdmin);
+    const result = await api('/admin/requests');
+    if (state.user?.id !== userId) return;
+    let requests = result.requests;
+    target.innerHTML = `<div class="stack">${bookingFilters(requests, true)}
+      <div id="admin-requests" class="stack" aria-live="polite"></div></div>`;
+    const filters = $('#admin-filters');
+    const list = $('#admin-requests');
+    const render = () => {
+      const rows = matchingBookings(requests, filters, true);
+      list.innerHTML = rows.length
+        ? rows.map(row => bookingCard(row, true)).join('')
+        : empty(requests.length ? 'По выбранным фильтрам заявок нет.' : 'Нет заявок, ожидающих решения.');
+      connectBookingActions(list, refresh);
+    };
+    const refresh = async decidedId => {
+      let remaining = requests.filter(row => String(row.id) !== decidedId);
+      try {
+        remaining = (await api('/admin/requests')).requests;
+      } catch {
+        // The decision was saved even if refreshing the list failed.
+      }
+      if (state.user?.id !== userId || !list.isConnected) return;
+      requests = remaining;
+      render();
+    };
+    connectFilters(filters, render);
   } catch (error) {
-    target.innerHTML = empty(error.message);
+    if (state.user?.id === userId) target.innerHTML = empty(error.message);
   }
 }
