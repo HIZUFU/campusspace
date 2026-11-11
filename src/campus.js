@@ -282,8 +282,10 @@ export class Campus {
   notifications(user) {
     this.reminders();
     return this.db.prepare(`
-      SELECT id, booking_id AS bookingId, message, created_at AS createdAt, read_at AS readAt
-      FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 100
+      SELECT n.id, n.booking_id AS bookingId, n.message, n.created_at AS createdAt, n.read_at AS readAt,
+             b.start_at AS bookingStartAt, b.end_at AS bookingEndAt
+      FROM notifications n JOIN bookings b ON b.id = n.booking_id
+      WHERE n.user_id = ? ORDER BY n.id DESC LIMIT 100
     `).all(user.id);
   }
 

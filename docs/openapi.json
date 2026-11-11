@@ -350,6 +350,14 @@
             "type": "integer",
             "minimum": 1
           },
+          "bookingStartAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bookingEndAt": {
+            "type": "string",
+            "format": "date-time"
+          },
           "message": {
             "type": "string"
           },
@@ -372,6 +380,8 @@
         "required": [
           "id",
           "bookingId",
+          "bookingStartAt",
+          "bookingEndAt",
           "message",
           "createdAt",
           "readAt"

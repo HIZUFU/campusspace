@@ -139,7 +139,10 @@ test('напоминание отправляется один раз и отм�
   `).run(iso(30 * 60_000), iso(90 * 60_000), iso(0));
   const matching = async () => (await api('/notifications', { cookie: student })).data.notifications
     .filter(item => item.bookingId === lastInsertRowid && item.message.includes('Скоро бронирование'));
-  assert.equal((await matching()).length, 1);
+  const [reminder] = await matching();
+  assert.equal(reminder.bookingStartAt, iso(30 * 60_000));
+  assert.equal(reminder.bookingEndAt, iso(90 * 60_000));
+  assert.equal(reminder.readAt, null);
   assert.equal((await matching()).length, 1);
   assert.equal((await api('/notifications', { method: 'PATCH', cookie: student })).status, 200);
   assert.ok((await matching())[0].readAt);

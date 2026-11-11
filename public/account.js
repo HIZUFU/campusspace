@@ -1,5 +1,5 @@
-import { $, api, announce, badge, button, closeButton, dateText, e, empty, onSubmit,
-  rangeText, secondary, state, statusBadge, timeText } from './ui.js';
+import { $, api, announce, badge, button, closeButton, e, empty, onSubmit,
+  rangeText, secondary, state, statusBadge } from './ui.js';
 
 const actionDialog = $('#action-dialog');
 const active = booking => ['pending', 'confirmed'].includes(booking.status) && Date.parse(booking.endAt) > Date.now();
@@ -162,6 +162,69 @@ function connectFilters(form, render) {
   render();
 }
 
+function connectNotifications(panel, initialNotifications, userId) {
+  const list = panel.querySelector('[data-notices]');
+  const markRead = panel.querySelector('#mark-read');
+  const isCurrent = () => panel.isConnected && state.user?.id === userId;
+  let notifications = initialNotifications;
+  let rendered;
+  let refreshVersion = 0;
+  let polling = false;
+
+  function render() {
+    const markup = notifications.map(notice => `<div class="notice">
+      <div class="${notice.readAt ? '' : 'notice-unread'}">${e(notice.message)}</div>
+      <span class="muted">Бронь · ${rangeText({ startAt: notice.bookingStartAt, endAt: notice.bookingEndAt })}</span>
+    </div>`).join('') || empty('Новых уведомлений пока нет.');
+    if (markup !== rendered) {
+      list.innerHTML = markup;
+      rendered = markup;
+    }
+    markRead.hidden = notifications.every(notice => notice.readAt);
+  }
+
+  async function refresh() {
+    const version = ++refreshVersion;
+    try {
+      const result = await api('/notifications');
+      if (!isCurrent() || version !== refreshVersion) return;
+      notifications = result.notifications;
+      render();
+    } catch {
+      // Keep the current list if the connection is temporarily unavailable.
+    }
+  }
+
+  markRead.addEventListener('click', async () => {
+    markRead.disabled = true;
+    refreshVersion++;
+    try {
+      await api('/notifications', 'PATCH');
+      if (!isCurrent()) return;
+      const readAt = new Date().toISOString();
+      notifications = notifications.map(notice => notice.readAt ? notice : { ...notice, readAt });
+      render();
+      await refresh();
+    } catch (error) {
+      if (isCurrent()) announce(error.message, true);
+    } finally {
+      markRead.disabled = false;
+    }
+  });
+
+  render();
+  const timer = setInterval(async () => {
+    if (!isCurrent() || panel.closest('[hidden]')) {
+      clearInterval(timer);
+      return;
+    }
+    if (document.hidden || polling || markRead.disabled) return;
+    polling = true;
+    await refresh();
+    polling = false;
+  }, 30_000);
+}
+
 export async function loadAccount(showLogin, refreshIdentity) {
   const target = $('#account-content');
   const userId = state.user?.id;
@@ -182,14 +245,10 @@ export async function loadAccount(showLogin, refreshIdentity) {
     </div><div class="account-layout">
       <div class="stack">${bookingFilters(bookings)}<div id="bookings" class="stack"></div></div>
       <aside class="stack">
-        <section class="panel">
+        <section class="panel" id="account-notifications">
           <h2 class="mb-3">Уведомления</h2>
-          ${notifications.length ? notifications.map(notice => `<div class="notice">
-            <div class="${notice.readAt ? '' : 'notice-unread'}">${e(notice.message)}</div>
-            <span class="muted">${dateText(notice.createdAt)} · ${timeText(notice.createdAt)}</span>
-          </div>`).join('') : empty('Новых уведомлений пока нет.')}
-          ${notifications.some(notice => !notice.readAt)
-            ? `<button id="mark-read" class="${secondary} btn-sm mt-2" type="button">Прочитать все</button>` : ''}
+          <div data-notices aria-live="polite"></div>
+          <button id="mark-read" class="${secondary} btn-sm mt-2" type="button" hidden>Прочитать все</button>
         </section>
         <section class="panel">
           <h2 class="mb-3">Настройки профиля</h2>
@@ -211,16 +270,7 @@ export async function loadAccount(showLogin, refreshIdentity) {
       renderBookings(list, matchingBookings(bookings, filters));
       connectBookingActions(list, refresh);
     });
-    $('#mark-read')?.addEventListener('click', async event => {
-      event.target.disabled = true;
-      try {
-        await api('/notifications', 'PATCH');
-        await refresh();
-      } catch (error) {
-        event.target.disabled = false;
-        announce(error.message, true);
-      }
-    });
+    connectNotifications($('#account-notifications'), notifications, userId);
     onSubmit($('#profile-form'), async values => {
       const result = await api('/me', 'PATCH', { name: values.get('name'), reminders: values.has('reminders') });
       state.user = result.user;
