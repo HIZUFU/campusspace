@@ -97,6 +97,31 @@ test('студент не бронирует лекционную, админи�
   assert.ok(notifications.some(item => item.bookingId === booking.id && item.message.includes('подтверждено')));
 });
 
+test('отказ закрывает заявку и снова открывает слот', async () => {
+  const data = await interval(4);
+  const created = await api('/bookings', { method: 'POST', cookie: student, data });
+  assert.equal(created.status, 201);
+  const [booking] = created.data.bookings;
+  assert.equal(booking.status, 'pending');
+  assert.equal((await api('/bookings', { method: 'POST', cookie: teacher, data })).status, 409);
+
+  const path = `/admin/requests/${booking.id}/decision`;
+  const rejection = { decision: 'rejected', note: 'Нужен другой кабинет' };
+  for (const [cookie, status] of [[undefined, 401], [student, 403], [teacher, 403]]) {
+    assert.equal((await api(path, { method: 'POST', cookie, data: rejection })).status, status);
+  }
+  const result = await api(path, { method: 'POST', cookie: admin, data: rejection });
+  assert.equal(result.status, 200);
+  assert.equal(result.data.status, 'rejected');
+  assert.equal(result.data.decisionNote, rejection.note);
+  assert.equal((await api(path, { method: 'POST', cookie: admin, data: { decision: 'confirmed' } })).status, 409);
+  assert.ok(!(await api('/admin/requests', { cookie: admin })).data.requests.some(row => row.id === booking.id));
+  assert.ok((await api('/notifications', { cookie: student })).data.notifications
+    .some(item => item.bookingId === booking.id && item.message.includes('отказано')));
+  await interval(4);
+  assert.equal((await api('/bookings', { method: 'POST', cookie: teacher, data })).status, 201);
+});
+
 test('конфликт во второй неделе откатывает всю серию', async () => {
   const later = await interval(3, campusDate(Date.now() + 9 * dayMs));
   assert.equal((await api('/bookings', { method: 'POST', cookie: teacher, data: later })).status, 201);
@@ -109,7 +134,18 @@ test('конфликт во второй неделе откатывает вс�
   assert.equal(created.status, 201);
   const [{ seriesId }] = created.data.bookings;
   assert.equal(created.data.bookings.length, 2);
-  assert.equal((await api(`/series/${seriesId}/cancel`, { method: 'POST', cookie: student })).data.cancelled, 2);
+  const path = `/series/${seriesId}/cancel`;
+  assert.equal((await api(path, { method: 'POST', cookie: teacher })).status, 404);
+  assert.equal((await api(path, { method: 'POST', cookie: student })).data.cancelled, 2);
+  assert.equal((await api(path, { method: 'POST', cookie: student })).data.cancelled, 0);
+  const { bookings } = (await api('/bookings', { cookie: student })).data;
+  assert.deepEqual(bookings.filter(row => row.seriesId === seriesId).map(row => row.status),
+    ['cancelled', 'cancelled']);
+  for (const booking of created.data.bookings) {
+    const date = campusDate(Date.parse(booking.startAt));
+    const { slots } = (await api(`/rooms/3/calendar?date=${date}`)).data;
+    assert.equal(slots.find(slot => slot.startAt === booking.startAt).status, 'free');
+  }
 });
 
 test('рабочий день бронируется целиком, отзыв меняет рейтинг помещения', async () => {
